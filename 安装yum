@@ -1,0 +1,115 @@
+##寡人用的是centos7.5，x86_64
+##指注释，但centos下注释不是这样的
+##当你一直在 ~目录下yum时，或者用yum安装各种包时。
+##系统会出现 -bash: /usr/bin/yum: No such file or directory
+
+##接下来安装yum
+~#   rpm -aq | grep yum | xargs rpm -e --nodeps    ##删除原有yum
+~#   rpm -ap yum
+~#   cd /usr/local/src/                            ##进入src目录
+
+          ———————————————
+##入坑开始，刚开始搜索csdn上面，例如：
+##使用wget 下载：
+## wget http://mirrors.163.com/centos/7/os/i386/Packages/yum-3.2.29-60.el6.centos.noarch.rpm 
+## wget http://mirrors.163.com/centos/7/os/i386/Packages/yum-metadata-parser-1.1.2-16.el6.x86_64.rpm  
+## wget http://mirrors.163.com/centos/7/os/i386/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm 
+## wget http://mirrors.163.com/centos/7/os/i386/Packages/python-iniparse-0.3.1-2.1.el6.noarch.rpm
+##以上是csdn搜索的结果，如果按上面，基本下载失败
+##运行后得到HTTP request sent,awaiting response... 404 Found
+##          运行时间    ERROR 404:NOT Found
+##当前链接下不存在此版本，应该去官网 http://mirrors.163.com/centos/7/os/i386/Packages/ 查看，找到相应的版本进行下载
+          ———————————————
+##我进入官网，现在的版本是：
+##开始下载
+src# wget http://mirrors.163.com/centos/7/os/x86_64/Packages/yum-3.4.3-168.el7.centos.noarch.rpm
+src# wget http://mirrors.163.com/centos/7/os/x86_64/Packages/yum-plugin-fastestmirror-1.1.31-54.el7_8.noarch.rpm
+src# wget http://mirrors.163.com/centos/7/os/x86_64/Packages/python-iniparse-0.4-9.el7.noarch.rpm
+src# wget http://mirrors.163.com/centos/7/os/x86_64/Packages/yum-metadata-parser-1.1.4-10.el7.x86_64.rpm 
+##下载过程中，很容易单个的单词某个字母写错误，最后出问题
+
+##下载完开始安装
+##因文件有相互依赖性，故先安装python-iniparse-*.rpm 文件，再同时安装其它三个文件 ，这样就不会报错。
+src# rpm -ivh python-iniparse-0.4-9.el7.noarch.rpm
+src# rpm -ivh yum-*.rpm  yum-metadata-parser-*.rpm  yum-plugin-fastestmirror-*.rpm
+src# cd /etc/yum.repos.d    ##切换目录
+yum.repos.d# wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo  ##下载yum源
+yum.repos.d# ls -a   ##运行后出现CentOS7-163.repo
+yum.repos.d# vi ./CentOS-163.repo
+
+ ———————————————
+##修改内容如下：
+##文件中的baseurl地址,把每个baseurl后边的$releasever替换成7，把$basearch替换成x86_64，，记得是全部的，不是单个的：
+
+baseurl=http://mirrors.163.com/centos/$releasever/os/$basearch/修改前
+修改后baseurl=http://mirrors.163.com/centos/7/os/x86_64/
+gpgkey=http://mirrors.163.com/centos/RPM-GPG-KEY-CentOS-7
+
+##我们用浏览器进入http://mirrors.163.com后——点开centos，找不到$releasever这个版本号，所以我们选用7版本——接着点开os,里边只有x86_64,
+##所以要把$basearch替换成x86_64，这样在后面操作的时候就不会出错啦！
+##内容参照 https://www.cnblogs.com/wdjsbk/p/9629931.html
+———————————————
+
+##保存退出就行
+yum.repos.d# yum clean all
+yum.repos.d# yum makecache     ##运行makecache 生成缓存
+
+
+##也许会发生如下问题：
+yum.repos.d# yum clean all
+———————————————
+-bash: /usr/bin/yum: No such file or directory 
+———————————————
+
+##或者
+yum.repos.d# yum
+———————————————
+  File "/usr/bin/yum", line 30
+    except KeyboardInterrupt, e:
+                            ^
+SyntaxError: invalid syntax
+———————————————
+##yum采用python作为命令解释器，系统自带的为python2.7，我因为要安装python3.6.2，所以默认的python软链接了python3.6.2
+
+##解决方法：
+yum.repos.d#  vi /usr/bin/yum
+———————————————
+#!/usr/bin/python2.7
+import sys
+try:
+    import yum
+except ImportError:
+    print >> sys.stderr, """\
+There was a problem importing one of the Python modules
+required to run yum. The error leading to this problem was:
+
+   %s
+
+Please install a package which provides this module, or
+verify that the module is installed correctly.
+———————————————
+##保存退出即可
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
